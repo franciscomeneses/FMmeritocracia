@@ -1,0 +1,492 @@
+---
+title: "El efecto de la persepcion de la meritocracia sobre la aceptacion de la desigualdad de oportunidades"
+author: "Meneses-Rivas"
+date: "29 de agosto de 2019"
+output: 
+  html_document:
+    theme: flatly
+    highlight: tango
+    toc: true
+    toc_float: true
+    toc_depth: 2
+    number_sections: true
+---
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+#Descripción del documento y resultados generales 
+
+Este informe presenta los análisis de validez de las escalas de meritocracia a partir de los estadísticos AFE y AFC. Posteriormente, prueba el efecto de las variables de tratamiento experimental sobre la variable latente percepción de meritocracia. 
+Como resultado preliminar respecto a la valides deben señalarse dos conclusiones:
+
+1. Los ítems que miden la percepción de meritocracia no se relacionan entre sí como para generar un solo factor, agrupándose más bien, en bloques de preguntas. Existen respuestas muy disimiles por parte de los sujetos ante los distintos tipos de fraseo: las preguntas del tipo "para surgir en la vida es muy necesario tal cualidad" no correlacionan lo suficiente con las del tipo "En chile, tales personas, obtienen mayores recompensas".  Esta agrupación de las variables es coherente con la encontrada por Iturra (2019) en la base ELSOC. 
+
+2.	Las variables relacionadas con la desigualdad de oportunidades no pueden agruparse como la parte negativa de una supuesta variable latente unidimensional que valla desde la desigualdad de oportunidades a la meritocracia, sino que constituyen dos variables latentes distintas. Como plantea Roemer (2000) son dos conceptos distintos, pero relacionados. Es interesante como a diferencia de lo que plantean algunos autores, la igualdad de oportunidades no se encuentra siempre tácita en la percepción de la meritocracia. De hecho, según los análisis de clases latentes, el 60% de las personas pertenecen a un grupo que considera tantos las características heredadas y meritorias como aquello que da éxito. 
+Como resultado preliminar del análisis SEM  
+
+3.	Solo la exposición a información de desigualdad logra generar un efecto significativo sobre la variable latente percepción de la meritocracia, aunque de un tamaño efecto bastante pequeño, siendo el valor estandarizado de -.077, (p= .014). 
+
+
+
+
+#Cargando paquetes y base
+```{r}
+pacman::p_load(psych ,haven,dplyr,car,likert,reshape, lavaan, corrplot, semPlot, stargazer)
+```
+Se importa y ajusta la base de datos
+
+```{r}
+pob <- read_spss("pob_05netquest.sav")
+
+pob_recb=pob %>% select(
+"perc_recom_esfuerzo"=merit_perc_pref_1,
+"perc_recom_talento"=merit_perc_pref_2,
+
+"norm_sal.adel_padr.ric"=merit_perc_pref_14,
+"norm_sal.adel_bue.cont"=merit_perc_pref_15,
+"t_trat"= FL_9_DO_Tratamiento,
+"t_con"=FL_9_DO_Control,
+"t_des"=FL_9_DO_Tratamiento_desigualdad,
+egal_1,egal_2,egal_3,egal_4,egal_5,egal_6,egal_7, egal_8,
+pos_pol_1) %>% as.data.frame()
+pob_recb<-na.omit(pob_recb)
+
+pob_rec=pob %>% select(
+"perc_recom_esfuerzo"=merit_perc_pref_1,
+"perc_recom_talento"=merit_perc_pref_2,
+"perc_sal.adel_padr.ric"=merit_perc_pref_3,
+"perc_sal.adel_bue.cont"=merit_perc_pref_4,
+
+"para_surguir_fam.ric"=get_ah_1,
+"para_surguir_pa.educ"=get_ah_2,
+"para_surguir_ten.educ"=get_ah_3,
+"para_surguir_ten.ambi"=get_ah_4,
+"para_surguir_trab.duro"=get_ah_5,
+
+"norm_recom_esfuerzo"=merit_perc_pref_5,
+"norm_recom_talento"=merit_perc_pref_13,
+"norm_sal.adel_padr.ric"=merit_perc_pref_14,
+"norm_sal.adel_bue.cont"=merit_perc_pref_15,
+"t_trat"= FL_9_DO_Tratamiento,
+"t_con"=FL_9_DO_Control,
+"t_des"=FL_9_DO_Tratamiento_desigualdad,
+egal_1,egal_2,egal_3,egal_4,egal_5,egal_6,egal_7, egal_8,
+pos_pol_1) %>% as.data.frame()
+
+
+pob_rec$pos_pol_1[pob_rec$pos_pol_1 ==-99]<-NA
+
+pob_rec<-na.omit(pob_rec) #quedan 894 casos
+
+
+pob_per=pob_rec %>% select(  #Base recortada con preguntas de percepcion de meritocracia.
+perc_recom_esfuerzo,
+perc_recom_talento,
+perc_sal.adel_padr.ric,
+perc_sal.adel_bue.cont,
+
+para_surguir_fam.ric,
+para_surguir_pa.educ,
+para_surguir_ten.educ,
+para_surguir_ten.ambi,
+para_surguir_trab.duro) %>% as.data.frame()
+
+
+pob_norm=pob_rec %>% select(  #Base recortada con preguntas de opinion de meritocracia.
+norm_recom_esfuerzo,
+norm_recom_talento,
+norm_sal.adel_padr.ric,
+norm_sal.adel_bue.cont) %>% as.data.frame()
+
+
+pob_per_norm =pob_rec %>% select( #Base pob_per + Base pob_norm
+perc_recom_esfuerzo,
+perc_recom_talento,
+perc_sal.adel_padr.ric,
+perc_sal.adel_bue.cont,
+
+para_surguir_fam.ric,
+para_surguir_pa.educ,
+para_surguir_ten.educ,
+para_surguir_ten.ambi,
+para_surguir_trab.duro,
+
+norm_recom_esfuerzo,
+norm_recom_talento,
+norm_sal.adel_padr.ric,
+norm_sal.adel_bue.cont) %>% as.data.frame()
+
+
+pob_per<-na.omit(pob_per) #quedan 894 casos
+pob_norm<-na.omit(pob_norm) #quedan 894 casos
+pob_per_norm<-na.omit(pob_per_norm) #quedan 894 casos
+
+remove(pob)
+
+```
+
+#Descriptivos
+
+##Tabla de descriptivos
+```{r}
+stargazer(pob_rec, type = "text")
+```
+En consideracion de estos descriptivos se debe decir que los casos peridos han sido eliminados correctamente, mientras que las variables parecen tener los rangos correspondientes. contamos con un n total de 894 sujetos, lo cual es suficiente para los analisis posteriores 
+
+
+
+## Graficos descriptivos de las variables de percepción de meritocracia
+```{r}
+pob_per[1:4] <-lapply(pob_per[1:4],factor, levels = 1:5)
+likt <- likert(pob_per)
+
+plot(likt)
+```
+En primer lugar, la mayoría de las personas están de acuerdo con que para surgir es fundamental tener educación. La educación parece relacionarse con la idea de surgir o de elevarse en la escala social y por ello guardaría una relación con la noción de meritocracia, de hecho, en los análisis factoriales tiende a ser un factor junto a trabajar duro y tener ambición.  
+
+En segundo lugar, es interesante que las dos siguientes frases con mas acuerdo refieren a desigualdad de oportunidades, dando cuenta de una alta percepción de un contexto poco propicio para la meritocracia. 
+
+En tercer lugar, es llamativo que si bien la mayoría de los encuestados considera fundamental el tener ambición (54%) y el trabajo duro (63%) para surgir en la vida, están al mismo tiempo menos convencidos de que las personas que se esfuerzan más y tienen talento son más recompensadas. En consideración de esto y del alto grado de percepción de las desigualdades de oportunidad, puede decirse que hay una baja percepción de meritocracia, aunque se le consideran fundamentales los valores meritorios como estrategia de superación, lo que es coherente con el análisis de las variables normativas de meritocracia.   
+
+En último lugar, el hecho de que la frase con menor acuerdo sea "para surgir es necesario tener padres ricos" al mismo tiempo que hay un alto grado de acuerdo con que las personas con padres ricos logran salir adelante, sugiere que el término "para surgir" se relaciona más con ideales normativos, mientras que cuando se pregunta "En Chile las personas con padres ricos logran salir adelante" la gente lo interpreta más como percepción. Para evaluar este hipo tesis, hay que analizar la relación entre ambos modos de fraseo y las opiniones normativas
+
+
+## Graficos descriptivos de las variables de la visión normativa de la meritocracia
+
+
+```{r}
+pob_norm[,1:4] <-lapply(pob_norm[,1:4],factor, levels=1:5)
+likt3 <- likert(pob_norm)
+plot(likt3)
+
+```
+
+Existe un mayor acuerdo normativo con la redistribucion basada en componentes meritorios, es decir un mayor acuerdo con la meritocracia, que con la reproduccion de la desigualdades. Podemos decir por ello, que si bien no se consive una tan alta  percepción de la meritocracia esta tiene un amplio apoyo en especial con le componente normativo del esfuerzo. 
+
+hay una muy menor cantidad de personas que estan de acuerdo con  que las personas con padres ricos o con buenos contactos salgan adelante. Estas serian personas que normativamente estan de acuerdo con que existan desventajas. 
+
+#Analisis de Correlaciones
+##Correlaciones de persepcion sobre la meritocracia
+
+Correlaciones Policoricas
+```{r}
+
+pcor_mer <-polychoric(pob_per,smooth=TRUE,global=TRUE,polycor=FALSE, ML = FALSE,
+       std.err=FALSE,weight=NULL,progress=TRUE,na.rm=TRUE, delete=TRUE)
+corrplot.mixed(pcor_mer$rho,tl.pos = c("d"), diag = c("u"))
+```
+En funcion de estas relaciones policoricas podemos decir que ests variables no se relacionan todas entre si, siendo complejo considerarlas como distintas formas de medir meritocracia, más bien, tenemos pares de variables que se relacionan, y nos dan cuenta de algunas posibles dimenciones. 
+
+
+
+##Correlaciones entre indicadores normativos de meritocracia 
+
+Correlaciones policoricas
+```{r}
+pcor_norm<-polychoric(pob_norm,smooth=TRUE,global=TRUE,polycor=FALSE, ML = FALSE,
+       std.err=FALSE,weight=NULL,progress=TRUE,na.rm=TRUE, delete=TRUE)
+corrplot.mixed(pcor_norm$rho,tl.pos = c("d"), diag = c("u"))
+
+```
+En funcion de estas correlaciones policoricas se puede preever que existiran dos factores en este conjunto de variables, dado que no existen correlaciones entre todas ellas que superen el .3, sino que solo se da dicha fuerza de relacion en pares que son coherentes entre si, en tanto aluden o a meritocracia o a la desigualdad de oportunidades. 
+
+
+
+#Análisis factorial confirmatorio. 
+A partir de lo expresado por Roemer (2000) la igualdad de oportunidades no es parte de la definición de la meritocracia, aunque es un concepto relacionado. Por ello, corresponde teóricamente separar las escalas de meritocracia en aquellos aspectos de percepción relativos al efecto del mérito, comprendido como talento y esfuerzo (Young, 1962) de aquellos que refieren a ventajas heredables en la sociedad. Al mismo tiempo, según pudo verse en el análisis exploratorio y en la matriz de correlaciones 4(hacer matriz que incluya todo lo de percepción), podemos decir que no existe una relación muy clara sobre la percepción de meritocracia en chile cuando se pregunta cómo "que es elemental para surgir en la vida" en comparación a cuando se pregunta cómo "En chile las personas. obtienen más recompensas..." (Iturra, 2019)
+
+
+En consideración de esto el modelo de medida que se hipotetiza para estas variables es de 6 factores, para las variables
+
+1. Percepción del efecto del mérito sobre las recompensas: 
+
+*"perc_recom_esfuerzo"
+*"perc_recom_talento"
+
+2. Percepción del efecto de las ventajas heredadas (desigualdad de oportunidades):
+
+*"perc_sal.adel_padr.ric"
+*"perc_sal.adel_bue.cont"
+
+3. Relevancia considerada de las ventajas heredadas para surgir en la vida (desigualdad de oportunidades):
+ 
+*"para_surguir_fam.ric"
+*"para_surguir_pa.educ"
+
+4. Relevancia considerada de valores y practicas consideradas meritorias
+*"para_surguir_ten.educ"
+*"para_surguir_ten.ambi "
+*"para_surguir_trab.duro"
+
+5. Opinión normativa respecto a la redistribución por merito
+*"norm_recom_esfuerzo"
+*"norm_recom_talento"
+
+6. Opinión normativa respecto a que las personas con ventajas salgan adelante
+
+*"norm_sal.adel_padr.ric"
+*"norm_sal.adel_bue.cont"
+
+
+```{r}
+model_1<- '
+
+f.per_mer =~ perc_recom_esfuerzo + perc_recom_talento
+
+f.per_desop =~ perc_sal.adel_padr.ric + perc_sal.adel_bue.cont
+
+f.rel_desop =~ para_surguir_fam.ric + para_surguir_pa.educ
+
+f.rel_mer =~  para_surguir_trab.duro + para_surguir_ten.ambi +para_surguir_ten.educ
+
+f.norm_mer =~ norm_recom_esfuerzo + norm_recom_talento
+
+f.norm_desop =~ norm_sal.adel_padr.ric + norm_sal.adel_bue.cont
+
+'
+
+fit_1<- cfa(model_1,data=pob_per_norm, ordered =c("perc_recom_esfuerzo", "perc_recom_talento", "perc_sal.adel_padr.ric", "perc_sal.adel_bue.cont", "para_surguir_fam.ric",  "para_surguir_pa.educ", "para_surguir_ten.educ", "para_surguir_ten.ambi", "para_surguir_trab.duro", "norm_recom_esfuerzo", "norm_recom_talento", "norm_sal.adel_padr.ric", "norm_sal.adel_bue.cont" ) )
+
+
+
+summary(fit_1, fit.measures=T, standardized=T)
+```
+
+```{r results="hide"}
+modificationindices(fit_1)
+```
+
+```{r}
+
+semPaths(fit_1 ,
+what="std",
+label.cex=1,
+edge.label.cex=.8,
+residuals=F, 
+
+nCharNodes = 3, nCharEdges = 3,
+ nDigits = 1,
+edge.color = "Black",
+thresholds= F,#Esto saca las lineas dentro de los cuadrados que representan las variables.
+intercepts = F,
+shapeInt = "Null", 
+structural = F, 
+freeStyle = 1,
+pastel =F, 
+layoutSplit = F, rainbowStart = 0, exoCov = F, color = "white", panelGroups = T, subRes = 4, covAtResiduals = F )
+```
+
+
+El ajuste del modelo es ambibalente, existiendo una diferencia estadisticamente significativa entre las matrises observada y reproducida, aunque la divicion del valor de Chi2 porlos grados de livertad es menor a 4 [156.828/50= 3.13]. Igualmente existe serca de un 57% de posibilidad de que el RMSEA este por debajo del criterio de .05  y su estimacion puntual indica un buen ajuste en consideracion de la parsimonia. Por su parte, el estadistifo TLI y CFI lograN superar el criterio de 90, auque solo CFI logra superar el .95  
+
+Respecto a las estimaciones, las cargas factoriales de las variables latentes sobre los indicadores presentan valores de moderados a altos y significacion al 99,9% de confianza en cada uno de ellos.
+
+Las correlaciones son bastante interesantes. En primer lugar, hay una correlacion estimada de .4 entre la persepcion de desigualdad de oportunidades y los valores normativos meritocraticos. Esta correlacion podria ser interpretada de varias maneras, en primer lugar, podria decirce que personas que perciven mayor desigualdad de oportunidades estaran en contra de dicha desigualdad y relevaran por ello los valores meritocraticos, o bien, en segundo lugar, podria pensarse que quiene poseen mas valores meritocraticos miran la sociedad desde este esquema de analisis  perciviendo mayor desigualdad de oportunidades. [justificar con citas]. Esta desicion, para ser tomada con exactitud requiere de analisis longitudinales, pero provisoriamente nos quedaremos con la primera posibilidad dado que la desigualdad de oportunidades es un hecho logicamente anterior a la opinion de los sujetos, y por ello, es probable que la persivan y con ello, releven valores contrarios y esperanzadores. 
+
+La segunda correlacion de mayor tamaño es una relacion positiva de baja intencidad entre percivir meritocracia y considerarla normativamente positiva. podria hipotetisarse que esta correlacion se funda en sujetos de alta posicion social, que consideran al mismo tiempo que su posicion es meritoria, y que la meritocracia es normativamente justa. Probar la existencia de esta tipologia de persona dependera del analisis de clases latentes posterior.  Igualmente se probara el efecto de la variable posicion subjetiva sobre ambas variables latentes (percepción y opinion de la meritocracia). 
+
+
+## ANALISIS FACTORIAL CONFIRMATORIO PARA ACTITUD A AL DESIGUALDAD
+
+```{r}
+model_13<- '
+
+f.egal=~ egal_1 + egal_2 + egal_3 + egal_4 + egal_5 + egal_6 + egal_7 + egal_8
+'
+
+
+fit_13<- cfa(model_13, data=pob_rec, ordered= c("egal_1", "egal_2" , "egal_3" , "egal_4", "egal_5", "egal_6", "egal_7", "egal_8"))
+
+summary(fit_13, fit.measures=T, standardized=T)
+```
+
+
+```{r}
+model_14<- 'f.egal=~ egal_1 + egal_2 + egal_4 + egal_5 + egal_6'
+
+
+fit_14<- cfa(model_14, data=pob_rec, ordered= c("egal_1", "egal_2" , "egal_4", "egal_5", "egal_6"))
+
+summary(fit_14, fit.measures=T, standardized=T)
+```
+El factor ajusta cuando se eliminan los items 3 7 y 8
+
+
+#SEM analisis
+```{r}
+model_4<- '
+f.per_mer =~ perc_recom_esfuerzo + perc_recom_talento
+f.norm_desop =~ norm_sal.adel_padr.ric + norm_sal.adel_bue.cont
+
+
+f.per_mer ~  t_con + t_trat + t_des
+f.norm_desop ~ f.per_mer
+'
+
+
+fit_3<- sem(model_4, data=pob_rec, ordered =c("perc_recom_esfuerzo", "perc_recom_talento", "norm_sal.adel_padr.ric", "norm_sal.adel_bue.cont"))
+
+summary(fit_3, fit.measures=T, standardized=T )
+
+ # modificationindices(fit_3)
+
+```
+
+```{r}
+semPaths(fit_3 , 
+what="std",
+label.cex=1.5,
+edge.label.cex=2,
+residuals=F, 
+edge.color = "Black",
+thresholds= F,#Esto saca las lineas dentro de los cuadrados que representan las variables.
+intercepts = F, shapeInt = "Null", structural = F, freeStyle = 1, pastel =F,  layoutSplit = F, rainbowStart = 0, exoCov = F, color = "white", panelGroups = T, subRes = 4, covAtResiduals = F )
+```
+Como puede verse, la relación entre las variables experimentales y la percepción de meritocracia, si bien es significativa al 95% de confianza en el caso de la exposicion a informacino de desiguialdad (p= 0,014), es de una fuerza de relacion muy debil, correspondiente al 0,0016% de la varianza. 
+
+Por su parte hay una relacion bastante fuerte entre las variables latentes, la cual nos indica que personas con una mayor percepción de meritocracia estan normativamente más a favor de que las personas de padres ricos o con buenos contactos salgan adelante.
+
+
+```{r}
+model_5<- '
+f.per_mer =~ perc_recom_esfuerzo + perc_recom_talento
+f.norm_desop =~ norm_sal.adel_padr.ric + norm_sal.adel_bue.cont
+f.rel_desop =~ para_surguir_fam.ric + para_surguir_pa.educ 
+
+f.rel_desop ~ t_con + t_trat + t_des
+f.per_mer ~  f.rel_desop
+f.norm_desop ~ f.per_mer
+'
+
+
+fit_5<- sem(model_5, data=pob_rec, ordered =c("perc_recom_esfuerzo", "perc_recom_talento", "norm_sal.adel_padr.ric", "norm_sal.adel_bue.cont","para_surguir_fam.ric","para_surguir_pa.educ"))
+
+
+summary(fit_5, fit.measures=T, standardized=T )
+
+
+```
+
+```{r}
+semPaths(fit_3 , 
+what="std",
+label.cex=1.5,
+edge.label.cex=2,
+residuals=F, 
+edge.color = "Black",
+thresholds= F,#Esto saca las lineas dentro de los cuadrados que representan las variables.
+intercepts = F, shapeInt = "Null", structural = F, freeStyle = 1, pastel =F,  layoutSplit = F, rainbowStart = 0, exoCov = F, color = "white", panelGroups = T, subRes = 4, covAtResiduals = F )
+
+```
+
+
+```{r}
+model_4<- '
+f.per_mer =~ perc_recom_esfuerzo + perc_recom_talento
+f.norm_desop =~ norm_sal.adel_padr.ric + norm_sal.adel_bue.cont
+
+
+f.per_mer ~  t_con + t_trat + t_des
+f.norm_desop ~ f.per_mer
+'
+
+
+fit_3<- sem(model_4, data=pob_rec, ordered =c("perc_recom_esfuerzo", "perc_recom_talento", "norm_sal.adel_padr.ric", "norm_sal.adel_bue.cont"))
+
+summary(fit_3, fit.measures=T, standardized=T )
+
+ # modificationindices(fit_3)
+
+```
+
+
+
+```{r}
+semPaths(fit_3 , 
+what="std",
+label.cex=1.5,
+edge.label.cex=2,
+residuals=F, 
+edge.color = "Black",
+thresholds= F,#Esto saca las lineas dentro de los cuadrados que representan las variables.
+intercepts = F, shapeInt = "Null", structural = F, freeStyle = 1, pastel =F,  layoutSplit = F, rainbowStart = 0, exoCov = F, color = "white", panelGroups = T, subRes = 4, covAtResiduals = F )
+```
+Como puede verse, la relación entre las variables experimentales y la percepción de meritocracia, si bien es significativa al 95% de confianza en el caso de la exposicion a informacino de desiguialdad (p= 0,014), es de una fuerza de relacion muy debil, segun la cual la diferencia entre ser expuesto o no a esa informacion es de .8
+
+Por su parte hay una relacion bastante fuerte entre las variables latentes, la cual nos indica que personas con una mayor percepción de meritocracia estan normativamente más a favor de que las personas de padres ricos o con buenos contactos salgan adelante.
+
+
+```{r}
+
+
+model_6<- '
+f.per_mer =~ perc_recom_esfuerzo + perc_recom_talento
+f.norm_desop =~ norm_sal.adel_padr.ric + norm_sal.adel_bue.cont
+f.rel_desop =~ para_surguir_fam.ric + para_surguir_pa.educ 
+
+f.rel_desop ~ t_con + t_trat + t_des
+f.per_mer ~  f.rel_desop
+f.norm_desop ~ pos_pol_1 + f.per_mer
+
+'
+
+
+fit_6<- sem(model_6, data=pob_rec, ordered =c("perc_recom_esfuerzo", "perc_recom_talento", "norm_sal.adel_padr.ric", "norm_sal.adel_bue.cont","para_surguir_fam.ric","para_surguir_pa.educ"))
+
+
+summary(fit_6, fit.measures=T, standardized=T )
+
+```
+
+```{r}
+semPaths(fit_6 , 
+what="std",
+label.cex=1.5,
+edge.label.cex=2,
+residuals=F, 
+edge.color = "Black",
+thresholds= F,#Esto saca las lineas dentro de los cuadrados que representan las variables.
+intercepts = F, shapeInt = "Null", structural = F, freeStyle = 1, pastel =F,  layoutSplit = F, rainbowStart = 0, exoCov = F, color = "white", panelGroups = T, subRes = 4, covAtResiduals = F )
+```
+
+#Incorporando actitud hacia la igualdad y preferencias redistributivas
+
+```{r}
+#se excluye egal4 por crossloading 
+#se excluye egal 3 7 8 por que relacionan menos
+
+model_7<- '
+f.per_mer =~ perc_recom_esfuerzo + perc_recom_talento
+f.norm_desop =~ norm_sal.adel_padr.ric + norm_sal.adel_bue.cont
+f.egal=~ egal_1 + egal_2 + egal_5 + egal_6
+
+f.per_mer ~ t_des
+f.norm_desop ~ a*f.per_mer
+f.egal ~ b*f.norm_desop
+ind_mer_egal:= a*b
+
+
+'
+
+
+fit_7<- sem(model_7, data=pob_recb, ordered =c("perc_recom_esfuerzo", "perc_recom_talento", "norm_sal.adel_padr.ric", "norm_sal.adel_bue.cont", "egal_1", "egal_2",  "egal_4", "egal_5", "egal_6"))
+
+summary(fit_7, fit.measures=T, standardized=T )
+
+```
+
+```{r}
+semPaths(fit_7 , 
+what="std",
+label.cex=1,
+edge.label.cex=1,
+residuals=F, 
+edge.color = "Black",
+thresholds= F,#Esto saca las lineas dentro de los cuadrados que representan las variables.
+intercepts = F, shapeInt = "Null", structural = F, freeStyle = 1, pastel =F,  layoutSplit = T, rainbowStart = 0, exoCov = F, color = "white", panelGroups = T, subRes = 4, covAtResiduals = F )
+
+```
+A partir de este analisis se concluye que la meritocracia ejerce un efecto indirecto sifnidicativo sobre considerar la desigualdad como un problema relevante a resolver, por medio de su relacion con la aceptacion de desigualdad de oportunidades. Dicho de otro modo, quienes consiven que el sistema reparte recursos por talento y esfuerzo son mas problives a considerar justas las desigualdes de oportunidades, asi como quienes son mas propenso a considerarlas como justas son igualmente propensos a tener poco interes por la igualdad como un problema. El efecto indirecto es de -.116 desviaciones estandar que disminuye la preocupacion por la igualdad por cada desviacion estandar que aumenta la percepcion de meritocracia. 
