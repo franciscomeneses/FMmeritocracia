@@ -14,7 +14,7 @@ pacman::p_load(psych,haven,dplyr,car,likert,reshape, lavaan, corrplot, semPlot, 
 ```
 
 ```{r}
-pob_b<-read_spss("pob_05netquest.sav")
+pob <- read_spss(file ="data/pob_05netquest.sav")
 
 pob_mb=pob_b %>% select( ingresos, educat,
 "perc_recom_esfuerzo"=merit_perc_pref_1,

@@ -41,7 +41,7 @@ library(dplyr)
 ```
 
 ```{r}
-pob <- read_spss("pob_05netquest.sav")
+pob <- read_spss(file ="data/pob_05netquest.sav")
 pob_mer=pob %>% select(
 "esfuerzo"= merit_perc_pref_1,
 "talento" = merit_perc_pref_2,
