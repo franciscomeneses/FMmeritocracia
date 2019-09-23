@@ -1,0 +1,176 @@
+---
+title: "get_bh"
+author: "francisco meneses"
+date: "10 de septiembre de 2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+pacman::p_load(psych,haven,dplyr,car,likert,reshape, lavaan, corrplot, semPlot, stargazer)
+```
+
+```{r}
+pob_b<-read_spss("pob_05netquest.sav")
+
+pob_mb=pob_b %>% select( ingresos, educat,
+"perc_recom_esfuerzo"=merit_perc_pref_1,
+"perc_recom_talento"=merit_perc_pref_2,
+"para_surguir_fam.ric"=get_ah_1,
+"para_surguir_pa.educ"=get_ah_2,
+"perc_sal.adel_bue.cont"=merit_perc_pref_4,
+"para_surguir_ten.educ"=get_ah_3,
+"para_surguir_ten.ambi"=get_ah_4,
+"para_surguir_trab.duro"=get_ah_5,"con.per.ad"=get_ahB_1, "cn.pol"=get_ahB_2, "pg.coim"=get_ahB_3, "raza"=get_ahB_4, "relig"=get_ahB_5,"sx"=sexo, "sexo"=get_ahB_6) %>% as.data.frame()
+
+pob_b <- pob_b %>% select("con.per.ad"=get_ahB_1, "cn.pol"=get_ahB_2, "pg.coim"=get_ahB_3, "raza"=get_ahB_4, "relig"=get_ahB_5, "sexo"=get_ahB_6)
+
+
+pob_mb<-na.omit(pob_mb)
+pob_b<-na.omit(pob_b)
+```
+
+```{r}
+summary(pob_mb)
+```
+
+#Analisis de correlaciones
+
+```{r}
+corb<-polychoric(pob_b)
+
+corrplot.mixed(corb$rho)
+
+```
+
+
+#analisis factorial exploratorio
+```{r}
+factorb<-factanal(pob_b, factor=1)
+factorb
+```
+
+
+
+
+
+```{r}
+factorb2<-factanal(pob_b, factor=2)
+factorb2
+```
+
+```{r}
+factorb3<-factanal(pob_b, factor=3)
+factorb3
+```
+
+#analisis factorial confirmatorio
+
+```{r}
+model_afc<- 
+  'f.des =~ con.per.ad + cn.pol +  pg.coim + raza + relig + sexo'
+
+fit1<- cfa(model_afc, data=pob_b,  ordered = c("con.per.ad", "cn.pol", "pg.coim", "raza", "relig", "sexo"))
+
+summary(fit1, fit.measures=T, standardized=T)
+
+```
+En consideracion de estos resultados parece ser un modelo medianamente valido en terminos de estructura de medida, puesto que posee buenos indicadores eceptuando chi2, y RMSE. posee buenas cargas factoriales. 
+##AFC DOS 
+```{r}
+model_afcb<- 
+  'f.des.redes =~ con.per.ad + cn.pol +  pg.coim
+    f.des.ads =~ raza + relig + sexo'
+    
+fit1b<- cfa(model_afcb, data=pob_b,  ordered = c("con.per.ad", "cn.pol", "pg.coim", "raza", "relig", "sexo"))
+
+summary(fit1b, fit.measures=T, standardized=T)
+
+```
+
+
+#Modelo SEM
+
+```{r}
+#Sx no afecta
+#pospol no afecta
+# 
+
+Modelo_sem_a <- 
+  'f.des.redes =~ con.per.ad + cn.pol +  pg.coim
+    f.des.ads =~ raza + relig + sexo
+   f.des.ads ~ ingresos + sx
+    f.des.redes ~ educat + ingresos
+'
+
+
+
+fit2<- sem(Modelo_sem_a, data=pob_mb,  ordered = c("con.per.ad", "cn.pol", "pg.coim", "raza", "relig", "sexo", "para_surguir_fam.ric", "para_surguir_pa.educ", "sx"))
+summary(fit2, fit.measures=T, standardized=T)
+```
+
+hasta ahora no he encontrado nada que se relacione con este factor. 
+
+```{r}
+semPaths(fit2 , 
+what="std",
+label.cex=1.5,
+edge.label.cex=2,
+residuals=F, 
+edge.color = "Black",
+thresholds= F,#Esto saca las lineas dentro de los cuadrados que representan las variables.
+intercepts = F, shapeInt = "Null", structural = F, freeStyle = 1, pastel =F,  layoutSplit = F, rainbowStart = 0, exoCov = F, color = "WHITE", panelGroups = T, subRes = 4, covAtResiduals = F )
+```
+```{r}
+#Sx no afecta
+#pospol no afecta
+#f.salir_adel_mer no es afectado
+
+Modelo_sem_b <- 
+  'f.des.redes =~ con.per.ad + cn.pol +  pg.coim + perc_sal.adel_bue.cont
+    f.des.ads =~ raza + relig + sexo
+    f.per_mer =~ perc_recom_esfuerzo + perc_recom_talento
+
+   f.des.ads ~ ingresos + sx
+   f.des.redes ~ educat + ingresos
+  f.per_mer ~ f.des.ads + f.des.redes
+
+'
+
+
+
+fit3<- sem(Modelo_sem_b, data=pob_mb,  ordered = c("con.per.ad", "cn.pol", "pg.coim", "raza", "relig", "sexo", "sx", "perc_sal.adel_bue.cont","perc_recom_esfuerzo", "perc_recom_talento"))
+summary(fit3, fit.measures=T, standardized=T)
+```
+
+
+introducir la percepcion de meritocracia  genera porblemas de ajuste.
+
+```{r}
+#lo que provoca el desajuste segun el indices modification es la correlacion no explicitada entre ads y redes. 
+
+
+Modelo_sem_b <- 
+  'f.des.redes =~ con.per.ad + cn.pol +  pg.coim + perc_sal.adel_bue.cont
+    f.des.ads =~ raza + relig + sexo
+    f.per_mer =~ perc_recom_esfuerzo + perc_recom_talento
+
+  f.des.ads ~~ f.des.redes
+   f.des.ads ~ ingresos + sx
+   f.des.redes ~ educat + ingresos
+  f.per_mer ~ f.des.ads + f.des.redes
+
+'
+
+
+
+fit3<- sem(Modelo_sem_b, data=pob_mb,  ordered = c("con.per.ad", "cn.pol", "pg.coim", "raza", "relig", "sexo", "sx", "perc_sal.adel_bue.cont","perc_recom_esfuerzo", "perc_recom_talento"))
+summary(fit3, fit.measures=T, standardized=T)
+```
+```{r}
+modificationindices(fit3)
+```
+
